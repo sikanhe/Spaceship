@@ -1,10 +1,10 @@
-type state = {userId: option(string)};
+type context = {userId: option(string)};
 
-let listener = (conn: Conn.t(state)) =>
+let handler = (conn: Conn.t(context)) =>
   switch (conn) {
-  | {request: {method: `POST}, state: {userId: None}} =>
+  | {method: `POST, context: {userId: None}} =>
     conn->Conn.setStatus(Forbidden)->Conn.sendResp(`Text("Not logged in"))
-  | {request: {method: `POST, path: ["data"], body: Fetched(data)}} =>
+  | {method: `POST, path: ["data"], reqBody: Fetched(data)} =>
     conn
     ->Conn.setStatus(Ok)
     ->Conn.sendResp(`Html("Received data: " ++ data ++ ""))
@@ -14,10 +14,8 @@ let listener = (conn: Conn.t(state)) =>
 
 let requestLogger: Middleware.t('a) =
   (next, conn) => {
-    Js.log(conn.request.body);
-    Js.log(
-      "[" ++ Http.methodStr(conn.request.method) ++ "] " ++ conn.request.url,
-    );
+    Js.log(conn.reqBody);
+    Js.log("[" ++ Http.methodStr(conn.method) ++ "] " ++ conn.url);
     next(conn);
   };
 
@@ -34,4 +32,4 @@ let app =
   ->App.middleware(requestLogger)
   ->App.middleware(earlySend)
   ->App.middleware(Middleware.bodyFetcher)
-  ->App.start(listener, ~port=4000, ~defaultState={userId: None});
+  ->App.start(handler, ~port=4000, ~createContext=() => {userId: None});

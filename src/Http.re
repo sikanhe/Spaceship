@@ -63,15 +63,15 @@ module Request = {
       raw |> Js.String.split("/") |> Belt.List.fromArray;
     };
 
-  [@bs.send.pipe: t]
+  [@bs.send]
   external on:
     (
-    [@bs.string]
-    [
-      | `data(Node.Buffer.t => unit)
-      | [@bs.as "end"] `end_(unit => unit)
-      | `error(unit => unit)
-    ]
+      t,
+      [@bs.string] [
+        | `data(Node.Buffer.t => unit)
+        | [@bs.as "end"] `end_(unit => unit)
+        | `error(unit => unit)
+      ]
     ) =>
     t =
     "";
@@ -117,10 +117,10 @@ module Server = {
   type t;
   [@bs.module "http"]
   external create: ((Request.t, Response.t) => 'a) => t = "createServer";
-  [@bs.send.pipe: t] external listen: (~port: int) => t = "";
+  [@bs.send] external listen: (t, ~port: int) => t = "";
 
-  [@bs.send.pipe: t]
-  external on: ([@bs.string] [ | `error(unit => unit)]) => t = "";
+  [@bs.send]
+  external on: (t, [@bs.string] [ | `error(unit => unit)]) => t = "";
 
   let listen = (server, ~port) => {
     Js.log("Server started, listening on port " ++ string_of_int(port));
