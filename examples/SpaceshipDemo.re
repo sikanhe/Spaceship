@@ -1,5 +1,3 @@
-open Spaceship;
-
 type state = {userId: option(string)};
 
 let listener = (conn: Conn.t(state)) =>
