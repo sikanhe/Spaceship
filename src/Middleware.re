@@ -6,18 +6,10 @@ let bodyFetcher = (next, conn) => {
   let req = conn._req;
   let data = ref("");
   let onData = chunk => data := data^ ++ Node.Buffer.toString(chunk);
-  let onEnd = () => {
-    let conn = {
-      ...conn,
-      request: {
-        ...conn.request,
-        body: Fetched(data^),
-      },
-    };
-    next(conn);
-  };
+  let onEnd = () => next({...conn, reqBody: Fetched(data^)});
+
   req
-  |> Http.Request.on(`data(onData))
-  |> Http.Request.on(`end_(onEnd))
-  |> ignore;
+  -> Http.Request.on(`data(onData))
+  -> Http.Request.on(`end_(onEnd))
+  -> ignore;
 };

@@ -1,5 +1,5 @@
-type t('state) = {
-  middlewares: list(Middleware.t('state)),
+type t('context) = {
+  middlewares: list(Middleware.t('context)),
   httpServer: option(Http.Server.t),
 };
 
@@ -10,7 +10,7 @@ let middleware = (app, middleware) => {
   middlewares: [middleware, ...app.middlewares],
 };
 
-let start = (app, listener, ~port, ~defaultState) => {
+let start = (app, listener, ~port, ~createContext) => {
   let rec apply = (middlewares, listener) =>
     switch (middlewares) {
     | [] => listener
@@ -21,10 +21,10 @@ let start = (app, listener, ~port, ~defaultState) => {
 
   let server =
     Http.Server.create((req, res) => {
-      let conn = Conn.make(req, res, defaultState);
+      let conn = Conn.make(req, res, createContext());
       listener'(conn);
     })
-    |> Http.Server.listen(~port);
+    -> Http.Server.listen(~port);
 
   {...app, httpServer: Some(server)};
 };
