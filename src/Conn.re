@@ -4,6 +4,7 @@ type fetchable('a) =
 
 type t('payload) = {
   payload: 'payload,
+  beforeSend: t('payload) => t('payload),
   /* Request fields */
   method: Method.t,
   url: string,
@@ -40,3 +41,8 @@ let setContentType = (conn, contentType) =>
   conn->setRespHeader("Content-Type", contentType);
 
 type respType = [ | `Text(string) | `Html(string) | `Json(string)];
+
+let registerBeforeSend = (conn, f) => {
+  ...conn,
+  beforeSend: c => f(conn.beforeSend(c)),
+};

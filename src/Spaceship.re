@@ -1,6 +1,7 @@
 type middleware('ctx, 'payload) =
   ((Conn.t('payload), 'ctx) => unit, Conn.t('payload), 'ctx) => unit;
 
+
 module Make = (Adapter: Adapter.t) => {
   type handler('ctx) = (Conn.t(Adapter.payload), 'ctx) => unit;
 
@@ -18,6 +19,8 @@ module Make = (Adapter: Adapter.t) => {
         ->Conn.setContentType("application/json")
         ->Conn.setRespBody(string)
       };
+
+    conn.beforeSend(conn)->ignore;
 
     Adapter.sendResp(
       ~payload=conn.payload,
@@ -45,6 +48,7 @@ module Make = (Adapter: Adapter.t) => {
         let conn =
           Conn.{
             payload,
+            beforeSend: conn => conn,
             method,
             url,
             path,
