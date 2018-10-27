@@ -1,35 +1,31 @@
 type context = {userId: option(string)};
 
-let handler = (conn: Conn.t(context)) =>
-  switch (conn) {
-  | {method: `POST, context: {userId: None}} =>
-    conn->Conn.setStatus(Forbidden)->Conn.sendResp(`Text("Not logged in"))
-  | {method: `POST, path: ["data"], reqBody: Fetched(data)} =>
+module App = Spaceship.Make(Adapter.NodeHttp);
+
+let handler = (conn: Conn.t('a), ctx) =>
+  switch (conn, ctx) {
+  | ({method: `POST, path: ["data"], reqBody: Fetched(data)}, _ctx) =>
     conn
     ->Conn.setStatus(Ok)
-    ->Conn.sendResp(`Html("Received data: " ++ data ++ ""))
+    ->App.sendResp(`Html("Received data: " ++ data ++ ""))
+
+  | ({method: `PUT}, {userId: None}) =>
+    conn->Conn.setStatus(Forbidden)->App.sendResp(`Text("Not logged in"))
   | _ =>
-    conn->Conn.setStatus(NotFound)->Conn.sendResp(`Text("Page not found"))
+    conn->Conn.setStatus(NotFound)->App.sendResp(`Text("Page not found"))
   };
 
-let requestLogger: Middleware.t('a) =
-  (next, conn) => {
-    Js.log(conn.reqBody);
-    Js.log("[" ++ Http.methodStr(conn.method) ++ "] " ++ conn.url);
-    next(conn);
-  };
+let requestLogger = (next, conn, ctx) => {
+  Js.log(conn.Conn.reqBody);
+  Js.log("[" ++ Method.toStr(conn.method) ++ "] " ++ conn.url);
+  next(conn, ctx);
+};
 
-let earlySend = (_next, conn) =>
-  Conn.sendResp(conn, `Text("Early response"));
-
-let send500 = conn =>
-  conn
-  ->Conn.setStatus(InternalServerError)
-  ->Conn.sendResp(`Text("Internal Server Error"));
+let fetchBody = (next, conn, ctx) =>
+  App.fetchBody(conn, body => next({...conn, reqBody: Fetched(body)}, ctx));
 
 let app =
   App.make()
   ->App.middleware(requestLogger)
-  ->App.middleware(earlySend)
-  ->App.middleware(Middleware.bodyFetcher)
+  ->App.middleware(fetchBody)
   ->App.start(handler, ~port=4000, ~createContext=() => {userId: None});
