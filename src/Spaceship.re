@@ -1,13 +1,19 @@
 type middleware('ctx, 'payload) =
   ((Conn.t('payload), 'ctx) => unit, Conn.t('payload), 'ctx) => unit;
 
+type appServer('server)  =
+  | NotStarted
+  | Started('server);
+
 module Make = (Adapter: Adapter.t) => {
-  type t('context) = {
-    middlewares: list(middleware('context, Adapter.payload)),
-    server: option(Adapter.server),
+  type t('ctx) = {
+    middlewares: list(middleware('ctx, Adapter.payload)),
+    server: appServer(Adapter.server),
   };
 
-  let make = () => {middlewares: [], server: None};
+  type handler('ctx) = (Conn.t(Adapter.payload), 'ctx) => unit
+
+  let create = () => {middlewares: [], server: NotStarted};
 
   let middleware = (app, middleware) => {
     ...app,
@@ -18,20 +24,20 @@ module Make = (Adapter: Adapter.t) => {
     Adapter.fetchBody(conn.Conn.payload, cb)
   }
 
-  let sendResp = (conn, respType): unit => {
+  let sendResp = (conn, respType) => {
     let conn =
       switch (respType) {
       | `Text(string) =>
         conn
-        ->Conn.setRespHeader("Content-Type", "text/plain")
+        ->Conn.setContentType("text/plain")
         ->Conn.setRespBody(string)
       | `Html(string) =>
         conn
-        ->Conn.setRespHeader("Content-Type", "text/html")
+        ->Conn.setContentType("text/html")
         ->Conn.setRespBody(string)
       | `Json(string) =>
         conn
-        ->Conn.setRespHeader("Content-Type", "application/json")
+        ->Conn.setContentType("application/json")
         ->Conn.setRespBody(string)
       };
 
@@ -91,6 +97,6 @@ module Make = (Adapter: Adapter.t) => {
         },
         ~port,
       );
-    {...app, server: Some(server)};
+    {...app, server: Started(server)};
   };
 };

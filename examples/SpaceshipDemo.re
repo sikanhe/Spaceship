@@ -1,19 +1,24 @@
 type context = {userId: option(string)};
 
-module App = Spaceship.Make(Adapter.NodeHttp);
+module Server = Spaceship.Make(Adapter.NodeHttp);
 
-let handler = (conn: Conn.t('a), ctx) =>
-  switch (conn, ctx) {
-  | ({method: `POST, path: ["data"], reqBody: Fetched(data)}, _ctx) =>
-    conn
-    ->Conn.setStatus(Ok)
-    ->App.sendResp(`Html("Received data: " ++ data ++ ""))
+let handler: Server.handler(context) =
+  (conn, ctx) =>
+    switch (conn, ctx) {
+    | ({method: `POST, path: ["data"], reqBody: Fetched(data)}, _ctx) =>
+      conn
+      ->Conn.setStatus(Ok)
+      ->Server.sendResp(`Html("Received data: " ++ data ++ ""))
 
-  | ({method: `PUT}, {userId: None}) =>
-    conn->Conn.setStatus(Forbidden)->App.sendResp(`Text("Not logged in"))
-  | _ =>
-    conn->Conn.setStatus(NotFound)->App.sendResp(`Text("Page not found"))
-  };
+    | ({method: `PUT}, {userId: None}) =>
+      conn
+      ->Conn.setStatus(Forbidden)
+      ->Server.sendResp(`Text("Not logged in"))
+    | _ =>
+      conn
+      ->Conn.setStatus(NotFound)
+      ->Server.sendResp(`Text("Page not found"))
+    };
 
 let requestLogger = (next, conn, ctx) => {
   Js.log(conn.Conn.reqBody);
@@ -22,10 +27,11 @@ let requestLogger = (next, conn, ctx) => {
 };
 
 let fetchBody = (next, conn, ctx) =>
-  App.fetchBody(conn, body => next({...conn, reqBody: Fetched(body)}, ctx));
+  Server.fetchBody(conn, body =>
+    next({...conn, reqBody: Fetched(body)}, ctx)
+  );
 
-let app =
-  App.make()
-  ->App.middleware(requestLogger)
-  ->App.middleware(fetchBody)
-  ->App.start(handler, ~port=4000, ~createContext=() => {userId: None});
+Server.create()
+->Server.middleware(requestLogger)
+->Server.middleware(fetchBody)
+->Server.start(handler, ~port=4000, ~createContext=() => {userId: None});
