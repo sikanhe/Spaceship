@@ -1,6 +1,5 @@
-
 module NodeHttp: Adapter.t = {
-  open NodeHttp
+  open NodeHttp;
   type payload = (Request.t, Response.t);
   type server = Server.t;
 
@@ -9,10 +8,7 @@ module NodeHttp: Adapter.t = {
     let onData = chunk => data := data^ ++ Node.Buffer.toString(chunk);
     let onEnd = () => cb(data^);
 
-    req
-    ->Request.on(`data(onData))
-    ->Request.on(`end_(onEnd))
-    ->ignore;
+    req->Request.on(`data(onData))->Request.on(`end_(onEnd))->ignore;
   };
 
   let sendResp = (~payload, ~statusCode, ~headers, ~body, ~charEncoding) => {
