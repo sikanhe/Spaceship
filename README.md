@@ -27,6 +27,8 @@ let handler: Server.handler(context) =
       ->Server.sendResp(`Text("Page not found"))
     };
 
+/* Middlewares */
+
 [@bs.val] [@bs.scope "process"] external hrtime: unit => (int, int) = "";
 
 let requestLogger = (next, conn, ctx) => {
@@ -67,6 +69,7 @@ let fetchBody = (next, conn, ctx) =>
     next({...conn, reqBody: Fetched(body)}, ctx)
   );
 
+/* Simply compose on top of request handler */
 let handler' = requestLogger @@ fetchBody @@ handler;
 
 Server.start(handler', ~port=4000, ~createContext=() => {userId: None});
