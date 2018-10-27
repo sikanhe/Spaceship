@@ -21,17 +21,19 @@ let handler: Server.handler(context) =
     };
 
 let requestLogger = (next, conn, ctx) => {
-  Js.log(conn.Conn.reqBody);
-  Js.log("[" ++ Method.toStr(conn.method) ++ "] " ++ conn.url);
+  Js.log("[" ++ Method.toStr(conn.Conn.method) ++ "] " ++ conn.url);
   next(conn, ctx);
 };
 
 let fetchBody = (next, conn, ctx) =>
-  Server.fetchBody(conn, body =>
+  Server.fetchBody(conn, body => {
+    Js.log("Body: " ++ body)
     next({...conn, reqBody: Fetched(body)}, ctx)
-  );
+  });
 
-Server.create()
-->Server.middleware(requestLogger)
-->Server.middleware(fetchBody)
-->Server.start(handler, ~port=4000, ~createContext=() => {userId: None});
+let handler' =
+  requestLogger @@
+  fetchBody @@
+  handler;
+
+Server.start(handler', ~port=4000, ~createContext=() => {userId: None});
