@@ -1,4 +1,3 @@
-[@bs.deriving jsConverter]
 type t =
   | Continue
   | SwitchingProtocols

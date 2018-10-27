@@ -1,4 +1,3 @@
-[@bs.deriving {jsConverter: newType}]
 type t = [
   | `GET
   | `POST
