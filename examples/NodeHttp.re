@@ -1,16 +1,4 @@
 [@bs.deriving {jsConverter: newType}]
-type charEncoding = [
-  | `ascii
-  | `base64
-  | `binary
-  | `hex
-  | `latin1
-  | `ucs2
-  | `utf16le
-  | `utf8
-];
-
-[@bs.deriving {jsConverter: newType}]
 type method = [
   | `GET
   | `POST
@@ -37,11 +25,23 @@ let methodStr =
   | `TRACE => "TRACE"
   | `PATCH => "PATCH";
 
+[@bs.deriving {jsConverter: newType}]
+type charEncoding = [
+  | `ascii
+  | `base64
+  | `binary
+  | `hex
+  | `latin1
+  | `ucs2
+  | `utf16le
+  | `utf8
+];
+
 module Request = {
   [@bs.deriving abstract]
   type t = {
     method: abs_method,
-    url: Js.String.t,
+    url: string,
     port: int,
   };
 
@@ -88,7 +88,7 @@ module Response = {
   [@bs.send] external end_: t => unit = "end";
 
   let write = (response: t, ~encoding=`utf8, chunk: string) => {
-    write(response, chunk, charEncodingToJs(encoding));
+    write(response, chunk, encoding->charEncodingToJs);
     response;
   };
 
