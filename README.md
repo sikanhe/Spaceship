@@ -38,7 +38,6 @@ let requestLogger = (next, conn, ctx) => {
   conn
   ->Conn.registerBeforeSend(conn => {
       let (s2, ns2) = hrtime();
-      /* let diffS = s2 - s1; */
       let (sd, nd): (int, int) = {
         let nsDiff = ns2 - ns1;
         let sDiff = s2 - s1;
