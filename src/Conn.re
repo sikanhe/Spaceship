@@ -10,29 +10,32 @@ type t('payload) = {
   url: string,
   path: list(string),
   port: int,
-  queryParams: fetchable(Belt.Map.String.t(string)),
   queryString: string,
   host: string,
   protocol: [ | `https | `http],
   remoteIp: (int, int, int, int),
-  reqHeaders: Belt.Map.String.t(string),
+  reqHeaders: Header.t,
   reqBody: fetchable(string),
   /* Response fields */
   statusCode: int,
   respBody: string,
-  respHeaders: Belt.Map.String.t(string),
+  respHeaders: Header.t,
   charEncoding: CharEncoding.t,
   sent: bool,
 };
+
+let getReqHeader = (conn, field) => Header.get(conn.reqHeaders, field);
 
 let setStatus = (conn, status) => {
   ...conn,
   statusCode: Status.codeOfStatus(status),
 };
 
+let getRespHeader = (conn, field) => Header.get(conn.respHeaders, field);
+
 let setRespHeader = (conn, field, value) => {
   ...conn,
-  respHeaders: Belt.Map.String.set(conn.respHeaders, field, value),
+  respHeaders: Header.set(conn.respHeaders, field, value),
 };
 
 let setRespBody = (conn, body) => {...conn, respBody: body};

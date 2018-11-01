@@ -8,7 +8,7 @@ module type t = {
     (
       ~payload: payload,
       ~statusCode: int,
-      ~headers: Belt.Map.String.t(string),
+      ~headers: Header.t,
       ~body: string,
       ~charEncoding: CharEncoding.t
     ) =>
@@ -26,7 +26,7 @@ module type t = {
         ~host: string,
         ~protocol: [ | `https | `http],
         ~remoteIp: (int, int, int, int),
-        ~headers: Belt.Map.String.t(string)
+        ~headers: Header.t
       ) =>
       unit,
       ~port: int

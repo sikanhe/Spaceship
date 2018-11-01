@@ -24,44 +24,27 @@ let handler: Server.handler(context) =
 
 [@bs.val] [@bs.scope "process"] external hrtime: unit => (int, int) = "";
 
-let requestLogger = (next, conn, ctx) => {
-  Js.log(Method.toStr(conn.Conn.method) ++ " " ++ conn.url);
-  let (s1, ns1) = hrtime();
-
-  conn
-  ->Conn.registerBeforeSend(conn => {
-      let (s2, ns2) = hrtime();
-      /* let diffS = s2 - s1; */
-      let (sd, nd): (int, int) = {
-        let nsDiff = ns2 - ns1;
-        let sDiff = s2 - s1;
-        if (nsDiff < 0) {
-          (sDiff - 1, nsDiff + int_of_float(1e9));
-        } else {
-          (sDiff, nsDiff);
-        };
-      };
-
-      let diffNano = sd * int_of_float(1e9) + nd;
-      let diffMicro = diffNano / 1000;
-      let diffMilli = diffMicro / 1000;
-
-      let diffStr =
-        diffMilli > 1 ?
-          string_of_int(diffMilli) ++ "ms" :
-          string_of_int(diffMicro) ++ {j|µs|j};
-
-      Js.log("Sent " ++ string_of_int(conn.statusCode) ++ " in " ++ diffStr);
-      conn;
-    })
-  ->next(ctx);
+let getTimeMicro = () => {
+  let (s, ns) = hrtime();
+  s * int_of_float(1e6) + ns / 1000;
 };
 
-let fetchBody = (next, conn, ctx) =>
-  Server.fetchBody(conn, body =>
-    next({...conn, reqBody: Fetched(body)}, ctx)
-  );
+let logHeaders = (next, conn, ctx) => {
+  Js.log(conn.Conn.reqHeaders |> Belt.List.toArray);
+  next(conn, ctx);
+};
 
-let handler' = requestLogger @@ fetchBody @@ handler;
+let handler' =
+  Server.requestLogger(~getTimeMicro, ~logger=Js.log) @@
+  Server.bodyFetcher @@
+  logHeaders @@
+  handler;
 
 Server.start(handler', ~port=4000, ~createContext=() => {userId: None});
+
+Header.empty
+->Header.set("CONTENT-TYPE", "world")
+->Header.set("CONTENT-TYPE", "hello")
+->Header.append("CONTENT-TYPE", "DFDFD")
+->Belt.List.toArray
+->Js.log

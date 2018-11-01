@@ -40,9 +40,13 @@ type charEncoding = [
 module Request = {
   [@bs.deriving abstract]
   type t = {
+    httpVersion: string,
+    httpVersionMajor: int,
+    httpVersionMinor: int,
     method: abs_method,
     url: string,
     port: int,
+    rawHeaders: array(string),
   };
 
   let method = req => req->methodGet->methodFromJs;
@@ -78,52 +82,27 @@ module Request = {
 };
 
 module Response = {
-  open Status;
   [@bs.deriving abstract]
-  type t = {mutable statusCode: int};
+  type t = {
+    mutable statusCode: int,
+    mutable statusMessage: string,
+  };
 
   [@bs.send] external write: (t, string, abs_charEncoding) => unit = "";
   [@bs.send] external setHeader: (t, string, string) => unit = "";
   [@bs.send] external getHeader: (t, string) => string = "";
   [@bs.send] external end_: t => unit = "end";
-
-  let write = (response: t, ~encoding=`utf8, chunk: string) => {
-    write(response, chunk, encoding->charEncodingToJs);
-    response;
-  };
-
-  let setStatusCode = (res, code) => {
-    res->statusCodeSet(code);
-    res;
-  };
-
-  let setStatus = (res, status) => {
-    res->statusCodeSet(codeOfStatus(status));
-    res;
-  };
-
-  let setHeader = (res, field, value) => {
-    res->setHeader(field, value);
-    res;
-  };
-
-  let appendToHeader = (res, field, value) => {
-    let headerValue = res->getHeader(field);
-    res->setHeader(headerValue ++ value);
-  };
 };
 
 module Server = {
   type t;
   [@bs.module "http"]
   external create: ((Request.t, Response.t) => 'a) => t = "createServer";
+
   [@bs.send] external listen: (t, ~port: int) => t = "";
+  [@bs.send]
+  external listenWithCallback: (t, ~port: int, unit => unit) => t = "listen";
 
   [@bs.send]
   external on: (t, [@bs.string] [ | `error(unit => unit)]) => t = "";
-
-  let listen = (server, ~port) => {
-    Js.log("Server started, listening on port " ++ string_of_int(port));
-    listen(server, ~port);
-  };
 };

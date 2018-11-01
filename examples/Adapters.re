@@ -13,15 +13,13 @@ module NodeHttp: Adapter.t = {
 
   let sendResp = (~payload, ~statusCode, ~headers, ~body, ~charEncoding) => {
     let (_req, res) = payload;
-    Belt.Map.String.forEach(headers, (field, value) =>
+    Header.forEach(headers, ((field, value)) =>
       Response.setHeader(res, field, value)->ignore
     );
 
-    res
-    ->Response.setStatusCode(statusCode)
-    ->Response.write(body, ~encoding=charEncoding)
-    ->Response.end_;
-    ();
+    res->Response.statusCodeSet(statusCode);
+    res->Response.write(body, charEncodingToJs(charEncoding));
+    res->Response.end_;
   };
 
   let startServer = (cb, ~port) =>
@@ -36,8 +34,10 @@ module NodeHttp: Adapter.t = {
         ~host="",
         ~protocol=`http,
         ~remoteIp=(0, 0, 0, 0),
-        ~headers=Belt.Map.String.empty,
+        ~headers=req->Request.rawHeadersGet->Header.fromFlatArray,
       )
     )
-    ->Server.listen(~port);
+    ->Server.listenWithCallback(~port, () =>
+        Js.log("Server listening on PORT " ++ string_of_int(port))
+      );
 };

@@ -1,7 +1,6 @@
 type middleware('ctx, 'payload) =
   ((Conn.t('payload), 'ctx) => unit, Conn.t('payload), 'ctx) => unit;
 
-
 module Make = (Adapter: Adapter.t) => {
   type handler('ctx) = (Conn.t(Adapter.payload), 'ctx) => unit;
 
@@ -53,7 +52,6 @@ module Make = (Adapter: Adapter.t) => {
             url,
             path,
             port,
-            queryParams: Unfetched,
             queryString: query,
             host,
             protocol,
@@ -62,7 +60,7 @@ module Make = (Adapter: Adapter.t) => {
             reqBody: Unfetched,
             statusCode: 200,
             respBody: "",
-            respHeaders: Belt.Map.String.empty,
+            respHeaders: [],
             charEncoding: `utf8,
             sent: false,
           };
@@ -70,4 +68,32 @@ module Make = (Adapter: Adapter.t) => {
       },
       ~port,
     );
+
+  let requestLogger = (~getTimeMicro, ~logger, next, conn, ctx) => {
+    logger(Method.toStr(conn.Conn.method) ++ " " ++ conn.url);
+    let t1 = getTimeMicro();
+
+    Conn.registerBeforeSend(
+      conn,
+      conn => {
+        let t2 = getTimeMicro();
+        let diffMicro = t2 - t1;
+        let diffMilli = diffMicro / 1000;
+
+        let diffStr =
+          diffMicro > 1000 ?
+            string_of_int(diffMilli) ++ "ms" :
+            string_of_int(diffMicro) ++ {j|µs|j};
+
+        logger(
+          "Sent " ++ string_of_int(conn.statusCode) ++ " in " ++ diffStr,
+        );
+        conn;
+      },
+    )
+    ->next(ctx);
+  };
+
+  let bodyFetcher = (next, conn, ctx) =>
+    fetchBody(conn, body => next({...conn, reqBody: Fetched(body)}, ctx));
 };
